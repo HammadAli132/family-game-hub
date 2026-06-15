@@ -88,7 +88,7 @@ function imposterSocket(socket, ns) {
     }
   });
 
-  // Host restarts — clears game state and sends everyone back to lobby
+  // Host restarts or ends — clear state and send everyone back to lobby
   socket.on('imp:restart_game', () => {
     if (!isHost) return;
     if (state.votingTimer) clearTimeout(state.votingTimer);
@@ -97,25 +97,13 @@ function imposterSocket(socket, ns) {
     ns.to(roomCode).emit('imp:game_restarted');
   });
 
-  // Host can end the game early
+  // Host ends the game — same flow as restart (back to lobby, no game-over screen)
   socket.on('imp:end_game', () => {
     if (!isHost) return;
     if (state.votingTimer) clearTimeout(state.votingTimer);
-
-    const players = getPlayersArray(roomCode);
-    const imposter = players.find(p => p.id === state.imposterId);
-
-    ns.to(roomCode).emit('imp:game_over', {
-      winner: 'none',
-      imposterName: imposter?.name,
-      eliminatedName: null,
-      normalWord: state.normalWord,
-      imposterWord: state.imposterWord,
-      voteTally: {},
-    });
-
-    setRoomPhase(roomCode, 'ended');
     gameStates.delete(roomCode);
+    setRoomPhase(roomCode, 'lobby');
+    ns.to(roomCode).emit('imp:game_restarted');
   });
 
   socket.on('disconnect', () => {
@@ -123,9 +111,13 @@ function imposterSocket(socket, ns) {
     if (!room) return;
 
     if (isHost) {
+      // If game state already cleaned up (host ended/restarted), players are back
+      // in lobby — don't destroy the room.
+      if (!gameStates.has(roomCode)) return;
+
       const timer = setTimeout(() => {
         hostTimers.delete(roomCode);
-        if (getRoom(roomCode)) {
+        if (getRoom(roomCode) && gameStates.has(roomCode)) {
           if (state.votingTimer) clearTimeout(state.votingTimer);
           ns.to(roomCode).emit('error', {
             code: 'HOST_DISCONNECTED',

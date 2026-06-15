@@ -124,11 +124,13 @@ export default function ImposterPage() {
     toastInfo(`Voted for ${name}`);
   }
 
-  async function handleLeave() {
-    setLeaving(true);
-    if (isHost) socketRef.current?.emit('imp:end_game');
-    await clearSession();
-    navigate('/', { replace: true });
+  function handleLeave() {
+    if (isHost) {
+      setLeaving(true);
+      socketRef.current?.emit('imp:end_game');
+    } else {
+      navigate('/lobby', { replace: true });
+    }
   }
 
   function handleRestart() {

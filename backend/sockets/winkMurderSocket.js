@@ -90,16 +90,17 @@ function winkMurderSocket(socket, ns) {
     checkWinkMurderEnd(roomCode, ns, state);
   });
 
-  // Host can end the game at any time
+  // Host ends or leaves — send all players back to lobby, no game-over screen
   socket.on('wm:end_game', () => {
     if (!isHost) return;
-    endGame(roomCode, ns, state, 'host_ended');
+    gameStates.delete(roomCode);
+    setRoomPhase(roomCode, 'lobby');
+    ns.to(roomCode).emit('wm:game_restarted');
   });
 
-  // Host restarts — clears game state and sends everyone back to lobby
+  // Host restarts — same flow: clear state, send everyone back to lobby
   socket.on('wm:restart_game', () => {
     if (!isHost) return;
-    if (state.phase !== 'ended') state.phase = 'ended';
     gameStates.delete(roomCode);
     setRoomPhase(roomCode, 'lobby');
     ns.to(roomCode).emit('wm:game_restarted');
@@ -110,10 +111,14 @@ function winkMurderSocket(socket, ns) {
     if (!room) return;
 
     if (isHost) {
-      // Give the host 10 seconds to reconnect (handles accidental refresh)
+      // If game state is already gone (host ended/restarted), don't destroy the room —
+      // players have returned to lobby and the host is about to reconnect there.
+      if (!gameStates.has(roomCode)) return;
+
       const timer = setTimeout(() => {
         hostTimers.delete(roomCode);
-        if (getRoom(roomCode)) {
+        // Only destroy if game is still actively running (state still exists)
+        if (getRoom(roomCode) && gameStates.has(roomCode)) {
           ns.to(roomCode).emit('error', {
             code: 'HOST_DISCONNECTED',
             message: 'Host disconnected. Game over.',
@@ -127,24 +132,6 @@ function winkMurderSocket(socket, ns) {
   });
 }
 
-function endGame(roomCode, ns, state, reason) {
-  if (!state || state.phase === 'ended') return;
-  state.phase = 'ended';
-
-  const players = getPlayersArray(roomCode);
-  const rolesReveal = {};
-  players.forEach(p => { rolesReveal[p.name] = state.roles[p.id]; });
-
-  if (reason === 'host_ended') {
-    ns.to(roomCode).emit('wm:game_over', {
-      winner: 'none',
-      roles: rolesReveal,
-    });
-  }
-
-  setRoomPhase(roomCode, 'ended');
-  gameStates.delete(roomCode);
-}
 
 function checkWinkMurderEnd(roomCode, ns, state) {
   const room = getRoom(roomCode);

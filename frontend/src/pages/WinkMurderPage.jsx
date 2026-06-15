@@ -93,11 +93,14 @@ export default function WinkMurderPage() {
     socketRef.current?.emit('wm:ready');
   }
 
-  async function handleLeave() {
-    setLeaving(true);
-    if (isHost) socketRef.current?.emit('wm:end_game');
-    await clearSession();
-    navigate('/', { replace: true });
+  function handleLeave() {
+    if (isHost) {
+      // Host ending sends everyone to lobby via wm:game_restarted
+      setLeaving(true);
+      socketRef.current?.emit('wm:end_game');
+    } else {
+      navigate('/lobby', { replace: true });
+    }
   }
 
   function handleRestart() {
