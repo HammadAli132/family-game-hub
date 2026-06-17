@@ -1,4 +1,5 @@
 const { getRoom, getPlayer } = require('../utils/roomManager');
+const isDev = process.env.NODE_ENV === 'development';
 
 function createSocketAuthMiddleware(sessionMiddleware) {
   return function socketAuth(socket, next) {
@@ -18,7 +19,9 @@ function createSocketAuthMiddleware(sessionMiddleware) {
       socket.playerName = player.name;
       socket.isHost = room.hostId === authPlayerId;
 
-      console.log(`[${authRoomCode}] socket auth OK: ${player.name} (${authPlayerId}) host=${socket.isHost}`);
+      if (isDev) {
+        console.log(`[${authRoomCode}] socket auth OK: ${player.name} (${authPlayerId}) host=${socket.isHost}`);
+      }
       return next();
     }
 
@@ -42,6 +45,10 @@ function createSocketAuthMiddleware(sessionMiddleware) {
       socket.roomCode = session.roomCode;
       socket.playerName = player.name;
       socket.isHost = session.isHost;
+
+      if (isDev) {
+        console.log(`[${session.roomCode}] socket auth OK: ${player.name} (${session.playerId}) host=${socket.isHost}`);
+      }
 
       next();
     });

@@ -129,11 +129,9 @@ function lobbySocket(socket, ns) {
     }
 
     setRoomPhase(roomCode, 'starting');
-    console.log(`[${roomCode}] Starting game. Players: ${players.map(p => p.name).join(', ')} | Config:`, room.config);
     if (room.gameType === 'wink-murder') {
       const roles = assignWinkMurderRoles(players, room.config, getLastRoles(roomCode));
       setLastRoles(roomCode, roles);
-      console.log(`[${roomCode}] Wink Murder roles:`, Object.fromEntries(players.map(p => [p.name, roles[p.id]])));
       wmGameStates.set(roomCode, {
         roles,
         eliminated: new Set(),

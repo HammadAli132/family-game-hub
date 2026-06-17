@@ -22,7 +22,6 @@ function winkMurderSocket(socket, ns) {
   if (!state) return socket.disconnect(true);
 
   const role = state.roles[playerId];
-  console.log(`[${roomCode}] wm socket: player="${socket.playerName}" playerId="${playerId}" role="${role}" rolesKeys=${JSON.stringify(Object.keys(state.roles))}`);
   socket.emit('wm:roles_dealt', { role });
 
   socket.on('wm:ready', () => {
