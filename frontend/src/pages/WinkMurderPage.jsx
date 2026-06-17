@@ -25,6 +25,7 @@ export default function WinkMurderPage() {
   const [accusationUsed, setAccusationUsed] = useState(false);
   const [lastEvent, setLastEvent] = useState(null);
   const [leaving, setLeaving] = useState(false);
+  const [hostLeftCountdown, setHostLeftCountdown] = useState(null);
 
   const roomCode = session?.roomCode;
   const myName = session?.player?.name;
@@ -78,6 +79,8 @@ export default function WinkMurderPage() {
       navigate('/lobby', { replace: true });
     });
 
+    socket.on('wm:host_left', () => setHostLeftCountdown(8));
+
     socket.on('error', ({ code, message }) => {
       toastError(message);
       if (code === 'HOST_DISCONNECTED') {
@@ -87,6 +90,13 @@ export default function WinkMurderPage() {
 
     return () => socket.disconnect();
   }, [roomCode]);
+
+  useEffect(() => {
+    if (hostLeftCountdown === null) return;
+    if (hostLeftCountdown === 0) { clearSession(); navigate('/', { replace: true }); return; }
+    const t = setTimeout(() => setHostLeftCountdown(n => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [hostLeftCountdown]);
 
   function handleReady() {
     setIsReady(true);
@@ -109,6 +119,19 @@ export default function WinkMurderPage() {
   }
 
   if (!session?.valid) return null;
+
+  if (hostLeftCountdown !== null) {
+    return (
+      <div className="min-h-screen bg-dark-900 bg-grid flex flex-col items-center justify-center gap-4 px-4">
+        <div className="text-5xl animate-float">🏠</div>
+        <h2 className="text-2xl font-black text-white">Host has left</h2>
+        <p className="text-slate-400">Returning to home in <span className="font-bold text-white">{hostLeftCountdown}s</span>...</p>
+        <div className="w-48 h-1.5 bg-dark-600 rounded-full overflow-hidden mt-2">
+          <div className="h-full bg-violet-500 transition-all duration-1000" style={{ width: `${(hostLeftCountdown / 8) * 100}%` }} />
+        </div>
+      </div>
+    );
+  }
 
   if (phase === 'role-reveal') {
     return (

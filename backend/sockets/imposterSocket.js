@@ -128,9 +128,13 @@ function imposterSocket(socket, ns) {
     if (!room) return;
 
     if (isHost) {
-      // If game state already cleaned up (host ended/restarted), players are back
-      // in lobby — don't destroy the room.
-      if (!gameStates.has(roomCode)) return;
+      if (!gameStates.has(roomCode)) {
+        if (room.phase === 'lobby') return; // Host ended/restarted — players are already in lobby
+        // room.phase === 'ended': game ended naturally, host left from game-over screen
+        ns.to(roomCode).emit('imp:host_left');
+        deleteRoom(roomCode);
+        return;
+      }
 
       const timer = setTimeout(() => {
         hostTimers.delete(roomCode);

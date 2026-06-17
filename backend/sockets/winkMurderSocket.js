@@ -110,13 +110,16 @@ function winkMurderSocket(socket, ns) {
     if (!room) return;
 
     if (isHost) {
-      // If game state is already gone (host ended/restarted), don't destroy the room —
-      // players have returned to lobby and the host is about to reconnect there.
-      if (!gameStates.has(roomCode)) return;
+      if (!gameStates.has(roomCode)) {
+        if (room.phase === 'lobby') return; // Host ended/restarted — players are already in lobby
+        // room.phase === 'ended': game ended naturally, host left from game-over screen
+        ns.to(roomCode).emit('wm:host_left');
+        deleteRoom(roomCode);
+        return;
+      }
 
       const timer = setTimeout(() => {
         hostTimers.delete(roomCode);
-        // Only destroy if game is still actively running (state still exists)
         if (getRoom(roomCode) && gameStates.has(roomCode)) {
           ns.to(roomCode).emit('error', {
             code: 'HOST_DISCONNECTED',
