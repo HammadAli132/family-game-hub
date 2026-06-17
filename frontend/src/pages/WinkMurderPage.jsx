@@ -229,18 +229,23 @@ export default function WinkMurderPage() {
                       {name} {isMe && <span className="text-xs text-slate-500">(you)</span>}
                     </span>
                   </div>
-                  {!isMe && !isOut && !isEliminated && (
+                  {!isOut && !isEliminated && (
                     <div className="flex gap-2">
-                      {amKiller && (
+                      {amKiller && !isMe && (
                         <Button size="sm" variant="pink" onClick={() => socketRef.current?.emit('wm:wink', { targetName: name })}>
                           😉 Wink
                         </Button>
                       )}
                       {amDetective && !accusationUsed && (
-                        <Button size="sm" variant="cyan" onClick={() => {
-                          setAccusationUsed(true);
-                          socketRef.current?.emit('wm:accuse', { accusedName: name });
-                        }}>
+                        <Button
+                          size="sm"
+                          variant="cyan"
+                          disabled={isMe}
+                          onClick={() => {
+                            setAccusationUsed(true);
+                            socketRef.current?.emit('wm:accuse', { accusedName: name });
+                          }}
+                        >
                           🎯 Accuse
                         </Button>
                       )}
